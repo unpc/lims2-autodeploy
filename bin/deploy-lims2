@@ -48,7 +48,7 @@ fi
 
 : ${LIMS2_DIR:="${SRC_DIR}/lims2"}
 : ${LIMS2_GIT_URL:=/var/lib/git/lims2.git}
-: ${LIMS2_COMMIT:=master}
+: ${LIMS2_COMMIT:=develop}
 
 : ${NODE_LIMS2_DIR:="${SRC_DIR}/node-lims2"}
 : ${NODE_LIMS2_GIT_URL:=/var/lib/git/node-lims2.git}
@@ -73,6 +73,10 @@ fi
 : ${CACS_SERVER_DIR:="${SRC_DIR}/cacs-server"}
 : ${CACS_SERVER_GIT_URL:=/var/lib/git/cacs-server.git}
 : ${CACS_SERVER_COMMIT:=master}
+
+: ${RESERV_SERVER_DIR:="${SRC_DIR}/reserv-server"}
+: ${RESERV_SERVER_GIT_URL:=/var/lib/git/reserv-server.git}
+: ${RESERV_SERVER_COMMIT:=master}
 
 : ${MYSQL_DIR:="$TARGET_DIR/mysql"}
 : ${SPHINX_DIR:="$TARGET_DIR/sphinxsearch"}
@@ -105,7 +109,8 @@ then
 fi
 
 
-DOCKER_LIMS2_IMAGE=wine.genee.cn:5000/iamfat/lims2
+# DOCKER_LIMS2_IMAGE=wine.genee.cn:5000/unpc/lims2:latest
+DOCKER_LIMS2_IMAGE=wine-lims2:0.1
 
 STATUS_FILE="$RUN_DIR/status"
 [ -e $RUN_DIR ] || mkdir -p $RUN_DIR
@@ -120,15 +125,17 @@ if docker inspect ${CONTAINER_NAME} >/dev/null 2>&1 ; then
 	exit 0
 fi
 
-if [ "$ENABLE_SPHINX" == '1' ] 
-then
-	docker run --name ${CONTAINER_NAME}.sphinx -v /dev/log:/dev/log -v $TARGET_DIR:/data --privileged \
-	    -v $SPHINX_DIR:/var/lib/sphinxsearch \
-	    -v $SPHINX_CONFIG_DIR:/etc/sphinxsearch \
-	    -v $SPHINX_LOG_DIR:/var/log/sphinxsearch \
-	    -d wine.genee.cn:5000/iamfat/sphinxsearch
-fi
-
+# if [ "$ENABLE_SPHINX" == '1' ] 
+# then
+# 	
+# fi
+SPHINX_CONTAINER_NAME=${CONTAINER_NAME}.sphinx
+docker run --name $SPHINX_CONTAINER_NAME -v /dev/log:/dev/log -v $TARGET_DIR:/data --privileged \
+    -v $SPHINX_DIR:/var/lib/sphinxsearch \
+    -v $SPHINX_CONFIG_DIR:/etc/sphinxsearch \
+    -v $SPHINX_LOG_DIR:/var/log/sphinxsearch \
+    -d 0cbf478b7dd7
+	    
 if [ "$ENABLE_MYSQL" == '1' ] 
 then
 	MYSQL_CONTAINER_NAME=${CONTAINER_NAME}.mysql
@@ -168,6 +175,7 @@ export DOCKER_EPC_SERVER_DIR=/home/genee/epc-server
 export DOCKER_ICCO_SERVER_DIR=/home/genee/icco-server
 export DOCKER_ENV_SERVER_DIR=/home/genee/env-server
 export DOCKER_CACS_SERVER_DIR=/home/genee/cacs-server
+export DOCKER_RESERV_SERVER_DIR=/home/genee/reserv-server
 
 ENV_FILE=${TARGET_DIR}/env
 
@@ -214,6 +222,7 @@ docker_cmd="$docker_cmd --dns=172.17.42.1"
 docker_cmd="$docker_cmd --volumes-from ${DATA_CONTAINER_NAME}"
 docker_cmd="$docker_cmd --env-file $ENV_FILE"
 [ -z "$MYSQL_CONTAINER_NAME" ] || docker_cmd="$docker_cmd --link $MYSQL_CONTAINER_NAME:mysql"
+[ -z "$SPHINX_CONTAINER_NAME" ] || docker_cmd="$docker_cmd --link $SPHINX_CONTAINER_NAME:sphinx"
 
 DOCKER_SSH_PORT=22
 docker_cmd="$docker_cmd -p $DOCKER_SSH_PORT"
@@ -240,6 +249,9 @@ docker_cmd="$docker_cmd -p $DOCKER_VIDCAM_PORT"
 DOCKER_GDOOR_PORT=2930
 docker_cmd="$docker_cmd -p $DOCKER_GDOOR_PORT"
 
+DOCKER_RESERV_PORT=9898
+docker_cmd="$docker_cmd -p $DOCKER_RESERV_PORT"
+
 docker_cmd="$docker_cmd -p"
 if [ -z "$LIMS2_HOST_PORT" ]; then
 	docker_cmd="$docker_cmd 80"
@@ -250,6 +262,19 @@ docker_cmd="$docker_cmd -d $DOCKER_LIMS2_IMAGE"
 
 eval $docker_cmd
 
+sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR /bin/sh -c 'php ${DOCKER_LIMS2_DIR}/cli/get_cron.php -u=genee > /etc/cron.d/lims2'
+
+GLOGON_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_GLOGON_PORT} | sed 's/[^:]*://')
+sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR GLOGON_PUB_PORT=$GLOGON_PUB_PORT /data/bin/update-glogon-port.sh
+GDOOR_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_GDOOR_PORT} | sed 's/[^:]*://')
+sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR GDOOR_PUB_PORT=$GDOOR_PUB_PORT /data/bin/update-gdoor-port.sh
+RESERV_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_RESERV_PORT} | sed 's/[^:]*://')
+sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR RESERV_PUB_PORT=$RESERV_PUB_PORT /data/bin/update-reserv-port.sh
+WEB_PUB_PORT=$(docker port ${CONTAINER_NAME} 80 | sed 's/[^:]*://')
+sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR WEB_PUB_PORT=$WEB_PUB_PORT /data/bin/update-web-port.sh
+sudo docker-enter "${CONTAINER_NAME}" supervisorctl restart php7-fpm nginx
+
+sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR DOCKER_NODE_LIMS2_DIR=$DOCKER_NODE_LIMS2_DIR DOCKER_NODE_LIMS2_LOG_DIR=$DOCKER_NODE_LIMS2_LOG_DIR /data/bin/init-node-lims2.sh
 
 if [ -z "$BACKUP_FILE" ]; then
 	INIT_DB_OPTS='--add-user'
@@ -257,21 +282,5 @@ else
 	INIT_DB_OPTS=
 fi
 sudo docker-enter "${CONTAINER_NAME}" sudo -u www-data env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR LIMS2_GENEE_PASSWORD=$LIMS2_GENEE_PASSWORD /data/bin/init-db.sh $INIT_DB_OPTS
-
-sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR /bin/sh -c 'php ${DOCKER_LIMS2_DIR}/cli/get_cron.php -u=genee > /etc/cron.d/lims2'
-
-GLOGON_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_GLOGON_PORT} | sed 's/[^:]*://')
-sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR GLOGON_PUB_PORT=$GLOGON_PUB_PORT /data/bin/update-glogon-port.sh
-CACS_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_CACS_PORT} | sed 's/[^:]*://')
-sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR CACS_PUB_PORT=$CACS_PUB_PORT /data/bin/update-cacs-port.sh
-GDOOR_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_GDOOR_PORT} | sed 's/[^:]*://')
-sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR GDOOR_PUB_PORT=$GDOOR_PUB_PORT /data/bin/update-gdoor-port.sh
-RESERV_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_RESERV_PORT} | sed 's/[^:]*://')
-sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR RESERV_PUB_PORT=$RESERV_PUB_PORT /data/bin/update-reserv-port.sh
-WEB_PUB_PORT=$(docker port ${CONTAINER_NAME} 80 | sed 's/[^:]*://')
-sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR WEB_PUB_PORT=$WEB_PUB_PORT /data/bin/update-web-port.sh
-sudo docker-enter "${CONTAINER_NAME}" supervisorctl restart xinetd php5-fpm nginx
-
-sudo docker-enter "${CONTAINER_NAME}" env DOCKER_NODE_LIMS2_DIR=$DOCKER_NODE_LIMS2_DIR DOCKER_NODE_LIMS2_LOG_DIR=$DOCKER_NODE_LIMS2_LOG_DIR /data/bin/init-node-lims2.sh
 
 rm -f $STATUS_FILE
