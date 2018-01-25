@@ -81,6 +81,8 @@ fi
 : ${MYSQL_DIR:="$TARGET_DIR/mysql"}
 : ${SPHINX_DIR:="$TARGET_DIR/sphinxsearch"}
 
+: ${SPHINX_DATA_DIR:="$SPHINX_DIR/data/lims2"}
+
 : ${LOG_DIR:="$TARGET_DIR/logs"}
 : ${CONFIG_DIR:="$TARGET_DIR/config"}
 
@@ -98,7 +100,7 @@ fi
 # The following variables will be used in `lims2` container.  Export them here.
 export SITE_ID LAB_ID LIMS2_GENEE_PASSWORD
 
-if [ ! -d $TARGET_DIR ] 
+if [ ! -d $TARGET_DIR ]
 then
 	mkdir -p $(dirname $TARGET_DIR)
 	cp -r $TEMPLATE $TARGET_DIR
@@ -108,9 +110,14 @@ then
 	sed -i 's/$LAB_ID/'$LAB_ID'/g' $TARGET_DIR/config/sphinxsearch/conf.d/lims2.conf
 fi
 
+if [ ! -d $SPHINX_DATA_DIR ]
+then
+	mkdir -p $SPHINX_DATA_DIR
+fi
+
 
 # DOCKER_LIMS2_IMAGE=wine.genee.cn:5000/unpc/lims2:latest
-DOCKER_LIMS2_IMAGE=wine-lims2:0.1
+DOCKER_LIMS2_IMAGE=541cbd7ace8e
 
 STATUS_FILE="$RUN_DIR/status"
 [ -e $RUN_DIR ] || mkdir -p $RUN_DIR
@@ -125,25 +132,25 @@ if docker inspect ${CONTAINER_NAME} >/dev/null 2>&1 ; then
 	exit 0
 fi
 
-# if [ "$ENABLE_SPHINX" == '1' ] 
+# if [ "$ENABLE_SPHINX" == '1' ]
 # then
-# 	
+#
 # fi
 SPHINX_CONTAINER_NAME=${CONTAINER_NAME}.sphinx
 docker run --name $SPHINX_CONTAINER_NAME -v /dev/log:/dev/log -v $TARGET_DIR:/data --privileged \
     -v $SPHINX_DIR:/var/lib/sphinxsearch \
     -v $SPHINX_CONFIG_DIR:/etc/sphinxsearch \
     -v $SPHINX_LOG_DIR:/var/log/sphinxsearch \
-    -d 0cbf478b7dd7
-	    
-if [ "$ENABLE_MYSQL" == '1' ] 
+    -d docker.genee.in/genee/sphinxsearch:v2.2.9-d2015080301
+
+if [ "$ENABLE_MYSQL" == '1' ]
 then
 	MYSQL_CONTAINER_NAME=${CONTAINER_NAME}.mysql
 	docker run --name $MYSQL_CONTAINER_NAME -v /dev/log:/dev/log -v $TARGET_DIR:/data --privileged \
 	    -v $MYSQL_DIR:/var/lib/mysql \
 	    -v $MYSQL_CONFIG_DIR:/etc/mysql \
 	    -v $MYSQL_LOG_DIR:/var/log/mysql \
-	    -d wine.genee.cn:5000/iamfat/mysql
+	    -d docker.genee.in/genee/mariadb:v10.1.10-d2015122701
 	(
 	docker run --rm --link ${CONTAINER_NAME}.mysql:mysql --name ${CONTAINER_NAME}.wait-for-mysql $DOCKER_LIMS2_IMAGE /bin/sh -c 'while ! mysql -u genee -h mysql -p83719730 -e quit 2>/dev/null ; do sleep 1 ; done'
 	DB_NAME=lims2_${LAB_ID}
@@ -156,8 +163,6 @@ then
 	fi
 	) &
 fi
-
-#docker run --name ${CONTAINER_NAME}.crtmp -v /dev/log:/dev/log -v $TARGET_DIR:/data --privileged -d wine.genee.cn:5000/iamfat/crtmp
 
 [ -e $SRC_DIR ] || mkdir -p $SRC_DIR
 cd $SRC_DIR || exit 2
@@ -192,12 +197,12 @@ docker run --name ${DATA_CONTAINER_NAME} \
 	--env-file $ENV_FILE \
 	$DOCKER_LIMS2_IMAGE true
 
-docker run --name ${CONTAINER_NAME}.generate-xinetd-conf \
-	--volumes-from ${DATA_CONTAINER_NAME} \
-	--env-file $ENV_FILE \
-	--rm $DOCKER_LIMS2_IMAGE /data/bin/generate-xinetd-conf.sh
+# docker run --name ${CONTAINER_NAME}.generate-xinetd-conf \
+#	--volumes-from ${DATA_CONTAINER_NAME} \
+#	--env-file $ENV_FILE \
+#	--rm $DOCKER_LIMS2_IMAGE /data/bin/generate-xinetd-conf.sh
 
-docker wait ${MYSQL_CONTAINER_NAME}.import ${CONTAINER_NAME}.generate-xinetd-conf >/dev/null 2>&1
+#docker wait ${MYSQL_CONTAINER_NAME}.import ${CONTAINER_NAME}.generate-xinetd-conf >/dev/null 2>&1
 
 docker run --name ${CONTAINER_NAME}.update-database-config \
 	--volumes-from $DATA_CONTAINER_NAME \
@@ -260,27 +265,29 @@ else
 fi
 docker_cmd="$docker_cmd -d $DOCKER_LIMS2_IMAGE"
 
+echo "$docker_cmd"
+
 eval $docker_cmd
 
-sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR /bin/sh -c 'php ${DOCKER_LIMS2_DIR}/cli/get_cron.php -u=genee > /etc/cron.d/lims2'
+sudo docker exec "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR /bin/sh -c 'php ${DOCKER_LIMS2_DIR}/cli/get_cron.php -u=genee > /etc/cron.d/lims2'
 
 GLOGON_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_GLOGON_PORT} | sed 's/[^:]*://')
-sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR GLOGON_PUB_PORT=$GLOGON_PUB_PORT /data/bin/update-glogon-port.sh
+sudo docker exec "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR GLOGON_PUB_PORT=$GLOGON_PUB_PORT /data/bin/update-glogon-port.sh
 GDOOR_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_GDOOR_PORT} | sed 's/[^:]*://')
-sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR GDOOR_PUB_PORT=$GDOOR_PUB_PORT /data/bin/update-gdoor-port.sh
+sudo docker exec "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR GDOOR_PUB_PORT=$GDOOR_PUB_PORT /data/bin/update-gdoor-port.sh
 RESERV_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_RESERV_PORT} | sed 's/[^:]*://')
-sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR RESERV_PUB_PORT=$RESERV_PUB_PORT /data/bin/update-reserv-port.sh
+sudo docker exec "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR RESERV_PUB_PORT=$RESERV_PUB_PORT /data/bin/update-reserv-port.sh
 WEB_PUB_PORT=$(docker port ${CONTAINER_NAME} 80 | sed 's/[^:]*://')
-sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR WEB_PUB_PORT=$WEB_PUB_PORT /data/bin/update-web-port.sh
-sudo docker-enter "${CONTAINER_NAME}" supervisorctl restart php7-fpm nginx
+sudo docker exec "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR WEB_PUB_PORT=$WEB_PUB_PORT /data/bin/update-web-port.sh
+sudo docker exec "${CONTAINER_NAME}" supervisorctl restart php7-fpm nginx
 
-sudo docker-enter "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR DOCKER_NODE_LIMS2_DIR=$DOCKER_NODE_LIMS2_DIR DOCKER_NODE_LIMS2_LOG_DIR=$DOCKER_NODE_LIMS2_LOG_DIR /data/bin/init-node-lims2.sh
+sudo docker exec "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR DOCKER_NODE_LIMS2_DIR=$DOCKER_NODE_LIMS2_DIR DOCKER_NODE_LIMS2_LOG_DIR=$DOCKER_NODE_LIMS2_LOG_DIR /data/bin/init-node-lims2.sh
 
 if [ -z "$BACKUP_FILE" ]; then
 	INIT_DB_OPTS='--add-user'
 else
 	INIT_DB_OPTS=
 fi
-sudo docker-enter "${CONTAINER_NAME}" sudo -u www-data env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR LIMS2_GENEE_PASSWORD=$LIMS2_GENEE_PASSWORD /data/bin/init-db.sh $INIT_DB_OPTS
+sudo docker exec "${CONTAINER_NAME}" sudo -u www-data env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR LIMS2_GENEE_PASSWORD=$LIMS2_GENEE_PASSWORD /data/bin/init-db.sh $INIT_DB_OPTS
 
 rm -f $STATUS_FILE
