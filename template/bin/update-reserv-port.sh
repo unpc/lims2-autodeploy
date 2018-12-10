@@ -12,4 +12,7 @@ config_file=$DOCKER_LIMS2_DIR/application/config/beanstalkd.php
 [ ! -w $config_file ] || sed -i "s/172.17.42.1/127.0.0.1/g" $config_file
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> c18a9b66830cc5459d03e7fe1478c40a494f5db3
