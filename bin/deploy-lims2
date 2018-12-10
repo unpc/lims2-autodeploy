@@ -53,7 +53,7 @@ fi
 
 : ${NODE_LIMS2_DIR:="${SRC_DIR}/node-lims2"}
 : ${NODE_LIMS2_GIT_URL:=/var/lib/git/node-lims2.git}
-: ${NODE_LIMS2_COMMIT:=master}
+: ${NODE_LIMS2_COMMIT:=develop}
 
 : ${GLOGON_SERVER_DIR:="${SRC_DIR}/glogon-server"}
 : ${GLOGON_SERVER_GIT_URL:=/var/lib/git/glogon-server.git}
@@ -77,7 +77,7 @@ fi
 
 : ${RESERV_SERVER_DIR:="${SRC_DIR}/reserv-server"}
 : ${RESERV_SERVER_GIT_URL:=/var/lib/git/reserv-server.git}
-: ${RESERV_SERVER_COMMIT:=master}
+: ${RESERV_SERVER_COMMIT:=develop}
 
 : ${MYSQL_DIR:="$TARGET_DIR/mysql"}
 : ${SPHINX_DIR:="$TARGET_DIR/sphinxsearch"}
