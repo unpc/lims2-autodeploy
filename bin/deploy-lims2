@@ -171,7 +171,8 @@ cd $SRC_DIR || exit 2
 # `-a` in `[` is NOT short-circuit.  Use `&&` instead.
 [ -e $LIMS2_DIR ] && [ -n "$(ls -A $LIMS2_DIR)" ] || git clone $LIMS2_GIT_URL $LIMS2_DIR
 # Hack for commits before lims2 2.11
-( cd $LIMS2_DIR && git checkout $LIMS2_COMMIT && git submodule init && git config submodule.system.url https://github.com/iamfat/qf && git submodule update --recursive )
+( cd $LIMS2_DIR && git checkout $LIMS2_COMMIT )
+( cd $LIMS2_DIR && git submodule init && git config submodule.system.url https://github.com/iamfat/qf && git submodule update --recursive )  
 # 在~/lims2-servers/data中增加 vendor 目录用于新版本的 vendor 更新，确保当前更新的 vendor 均为最新版本
 ( cd $LIMS2_DIR && cp -R $LIMS2_VENDOR . )
 cd $ROOT_DIR || exit 2
