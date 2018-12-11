@@ -224,7 +224,7 @@ docker run --name ${CONTAINER_NAME}.update-ldap-config \
 docker run --name ${CONTAINER_NAME}.chown \
 	--volumes-from ${DATA_CONTAINER_NAME} \
 	--env-file $ENV_FILE \
-	--rm $DOCKER_LIMS2_IMAGE /data/bin/chown.sh
+	--rm $DOCKER_LIMS2_IMAGE /bin/sh -c '/data/bin/chown.sh'
 
 
 docker_cmd="docker run --name $CONTAINER_NAME --privileged"

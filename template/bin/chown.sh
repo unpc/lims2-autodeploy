@@ -53,8 +53,4 @@ EOF
 
 chmod 644 "$RSA_PUB_DIR"
 chmod 600 "$RSA_DIR"
-<<<<<<< HEAD
 chmod 700 "/root/.ssh/"
-=======
-chmod 700 "/root/.ssh/"
->>>>>>> c18a9b66830cc5459d03e7fe1478c40a494f5db3
