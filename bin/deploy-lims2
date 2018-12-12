@@ -181,6 +181,7 @@ export DOCKER_LIMS2_DIR=/usr/share/lims2
 export DOCKER_NODE_LIMS2_DIR=/home/genee/node-lims2
 export DOCKER_NODE_LIMS2_LOG_DIR=/var/log/node-lims2
 export DOCKER_GLOGON_SERVER_DIR=/home/genee/glogon-server
+export DOCKER_GDOOR_SERVER_DIR=/home/genee/gdoor-server
 export DOCKER_EPC_SERVER_DIR=/home/genee/epc-server
 export DOCKER_ICCO_SERVER_DIR=/home/genee/icco-server
 export DOCKER_ENV_SERVER_DIR=/home/genee/env-server
@@ -259,6 +260,9 @@ docker_cmd="$docker_cmd -p $DOCKER_VIDCAM_PORT"
 DOCKER_GDOOR_PORT=2930
 docker_cmd="$docker_cmd -p $DOCKER_GDOOR_PORT"
 
+DOCKER_GDOOR_API_PORT=2950
+docker_cmd="$docker_cmd -p $DOCKER_GDOOR_API_PORT"
+
 DOCKER_RESERV_PORT=9898
 docker_cmd="$docker_cmd -p $DOCKER_RESERV_PORT"
 
@@ -281,7 +285,8 @@ sudo docker exec "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_
 GLOGON_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_GLOGON_PORT} | sed 's/[^:]*://')
 sudo docker exec "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR GLOGON_PUB_PORT=$GLOGON_PUB_PORT DOCKER_GLOGON_SERVER_DIR=$DOCKER_GLOGON_SERVER_DIR /data/bin/update-glogon-port.sh
 GDOOR_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_GDOOR_PORT} | sed 's/[^:]*://')
-sudo docker exec "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR GDOOR_PUB_PORT=$GDOOR_PUB_PORT /data/bin/update-gdoor-port.sh
+GDOOR_API_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_GDOOR_API_PORT} | sed 's/[^:]*://')
+sudo docker exec "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR GDOOR_PUB_PORT=$GDOOR_PUB_PORT GDOOR_API_PUB_PORT=$GDOOR_API_PUB_PORT DOCKER_GDOOR_SERVER_DIR=$DOCKER_GDOOR_SERVER_DIR /data/bin/update-gdoor-port.sh
 RESERV_PUB_PORT=$(docker port ${CONTAINER_NAME} ${DOCKER_RESERV_PORT} | sed 's/[^:]*://')
 sudo docker exec "${CONTAINER_NAME}" env SITE_ID=$SITE_ID LAB_ID=$LAB_ID DOCKER_LIMS2_DIR=$DOCKER_LIMS2_DIR RESERV_PUB_PORT=$RESERV_PUB_PORT /data/bin/update-reserv-port.sh
 WEB_PUB_PORT=$(docker port ${CONTAINER_NAME} 80 | sed 's/[^:]*://')
