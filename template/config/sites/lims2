@@ -15,7 +15,7 @@ server {
     location /lims {
         root /usr/share/lims2/public/;
 
-        location ~ ^/lims/\!.+\.(js|css|png|jpg|jpeg|gif|ico|swf)$ {
+        location ~ ^/lims/\!.+\.(js|css|png|jpg|jpeg|gif|ico|swf|bmp)$ {
             rewrite ^/lims/(.+)$ /lims/index.php/public?f=$1;
             fastcgi_param SITE_ID "$SITE_ID";
             fastcgi_param LAB_ID "$LAB_ID";
@@ -34,7 +34,7 @@ server {
             include fastcgi_params;
         }
 
-        location ~ \.(js|css|png|jpg|jpeg|gif|ico|swf)$ {
+        location ~ \.(js|css|png|jpg|jpeg|gif|ico|swf|bmp)$ {
             expires max;
                log_not_found off;
         }
