@@ -12,6 +12,7 @@ mkdir -p "/root/.ssh/"
 
 RSA_DIR="/root/.ssh/id_rsa"
 RSA_PUB_DIR="/root/.ssh/id_rsa.pub"
+KNOWN_FILE="/root/.ssh/known_hosts"
 
 [ -e "$RSA_DIR" ] || touch "$RSA_DIR"
 
@@ -51,6 +52,13 @@ cat <<EOF > $RSA_PUB_DIR
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDhQHFGDCVNa/5U2/0lIj4m2wIqK6/rFx2c4ve+bMqwwqol8dNwpBc12DooV4ag2ZEBlyEeG+TOAOEG66ZbgOKSY/gACcyHpz5FktEF39pE2Kyqqq0rPa64slvEvLxlJRH6gX/H0gopVfgEZVPNn1KvnnUIodRaQK/MCC6uCItypUgkdzNYfgD+O+oVus9qKhKZ+bxPb4x/XK/tQcf88vNMF7noJoJxjDK84HQIwnSx98mjkMDH0uKBRX3dvxakO1OJ6oYT42dqSzcf2/k7H51o/gze5mSWlw2d7AIa9MS7gt2G8N57zRcugwC7Fe0pZL0M6M1RetyWe2UOGf85TWwD root
 EOF
 
+[ -e "$KNOWN_FILE" ] || touch "$KNOWN_FILE"
+
+cat <<EOF > $KNOWN_FILE
+|1|FtP2oHb/T5LSeKiJjO7v/DNGck8=|7MqKrhb2YNcbDUrhJw0lzx8nhV4= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBD5PqKdYuHUbDraNmyvto77bgPh6zp0OUlcl12l8rZufI96GAuzY8jCxJEz91bfxTHLFRpKJbTvMGV2Ht3SO3QA=
+EOF
+
+chmod 644 "$KNOWN_FILE"
 chmod 644 "$RSA_PUB_DIR"
 chmod 600 "$RSA_DIR"
 chmod 700 "/root/.ssh/"
