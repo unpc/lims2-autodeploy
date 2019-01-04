@@ -12,8 +12,8 @@ if [ -e "$EPC_CONFIG_FILE" ]; then
 	sed -i "s/172.17.42.1/127.0.0.1/g" $EPC_CONFIG_FILE
 fi
 
-if [ -e "$GDOOR_CONFIG_FILE" ]; then
-	sed -i "s/3061/3061, host:'http:\/\/127.0.0.1'/g" $GDOOR_CONFIG_FILE
+if [ -e "$EPC_CONFIG_FILE" ]; then
+	sed -i "s/3061/3061, host:'http:\/\/127.0.0.1'/g" $EPC_CONFIG_FILE
 fi
 
 supervisorctl restart epc-server
