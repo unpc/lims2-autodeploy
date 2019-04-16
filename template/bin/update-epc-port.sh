@@ -2,7 +2,7 @@
 
 # 对epc代码进行再次更新
 cd $DOCKER_EPC_SERVER_DIR 
-git remote set-url origin git@192.168.0.26:epc-server.git
+git remote set-url origin git@192.168.18.26:epc-server.git
 git stash --include-untracked
 git pull origin develop
 git stash pop
@@ -17,3 +17,4 @@ if [ -e "$EPC_CONFIG_FILE" ]; then
 fi
 
 supervisorctl restart epc-server
+

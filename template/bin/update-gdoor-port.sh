@@ -5,7 +5,7 @@ echo "\$config['dc_gdoor']['port'] = ${GDOOR_PUB_PORT}; // gdoor 门禁端口" >
 
 # 对Gdoor代码进行再次更新
 cd $DOCKER_GDOOR_SERVER_DIR 
-git remote set-url origin git@192.168.0.26:gdoor-server.git
+git remote set-url origin git@192.168.18.26:gdoor-server.git
 git stash --include-untracked
 git pull origin develop
 git stash pop
@@ -16,7 +16,7 @@ if [ -e "$GDOOR_CONFIG_FILE" ]; then
 fi
 
 if [ -e "$GDOOR_CONFIG_FILE" ]; then
-	sed -i "s/192.168.0.26/127.0.0.1/g" $GDOOR_CONFIG_FILE
+	sed -i "s/192.168.18.26/127.0.0.1/g" $GDOOR_CONFIG_FILE
 fi
 
 supervisorctl restart gdoor-server
