@@ -27,4 +27,4 @@ git stash pop
 
 SERVER_CONFIG=$DOCKER_GLOGON_SERVER_DIR/config/default.js
 [ ! -w $SERVER_CONFIG ] || sed -i "s/\(host:\s*'\)[^']*'/\1http:\/\/127.0.0.1'/" $SERVER_CONFIG
-[ ! -w $SERVER_CONFIG ] || sed -i "s/\([lims2_api|local_api]:\s*'\)[^']*'/\1http:\/\/127.0.0.1\/lims\/api'/" $SERVER_CONFIG
+[ ! -w $SERVER_CONFIG ] || sed -i "s/\([lims2|local]_api:\s*'\)[^']*'/\1http:\/\/127.0.0.1\/lims\/api'/" $SERVER_CONFIG

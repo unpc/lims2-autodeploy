@@ -18,7 +18,7 @@ if [ -e "$GDOOR_CONFIG_FILE" ]; then
 fi
 
 if [ -e "$GDOOR_CONFIG_FILE" ]; then
-	sed -i "s/192.168.0.26/127.0.0.1/g" $GDOOR_CONFIG_FILE
+	sed -i "s/192.168.18.26/127.0.0.1/g" $GDOOR_CONFIG_FILE
 fi
 
 supervisorctl restart gdoor-server

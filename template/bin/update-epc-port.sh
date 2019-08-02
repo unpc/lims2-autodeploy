@@ -19,3 +19,4 @@ if [ -e "$EPC_CONFIG_FILE" ]; then
 fi
 
 supervisorctl restart epc-server
+
