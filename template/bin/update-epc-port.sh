@@ -2,7 +2,9 @@
 
 # 对epc代码进行再次更新
 cd $DOCKER_EPC_SERVER_DIR 
-git remote set-url origin git@192.168.0.26:epc-server.git
+git remote set-url origin git@192.168.18.26:epc-server.git
+git config --global user.email "support@geneegroup.com"
+git config --global user.name "support"
 git stash --include-untracked
 git pull origin develop
 git stash pop

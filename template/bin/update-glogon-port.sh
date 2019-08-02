@@ -16,10 +16,15 @@ if [ ! -e "$EQUIP_CONFIG" ]; then
 fi
 echo "\$config['computer_host'] = explode(':', \$_SERVER['HTTP_HOST'], 2)[0];" >> "$EQUIP_CONFIG"
 
+
+cd $DOCKER_GLOGON_SERVER_DIR 
+git remote set-url origin git@192.168.18.26:glogon-server.git
+git config --global user.email "support@geneegroup.com"
+git config --global user.name "support"
+git stash --include-untracked
+git pull origin develop
+git stash pop
+
 SERVER_CONFIG=$DOCKER_GLOGON_SERVER_DIR/config/default.js
 [ ! -w $SERVER_CONFIG ] || sed -i "s/\(host:\s*'\)[^']*'/\1http:\/\/127.0.0.1'/" $SERVER_CONFIG
 [ ! -w $SERVER_CONFIG ] || sed -i "s/\([lims2_api|local_api]:\s*'\)[^']*'/\1http:\/\/127.0.0.1\/lims\/api'/" $SERVER_CONFIG
-<<<<<<< HEAD
-
-=======
->>>>>>> c18a9b66830cc5459d03e7fe1478c40a494f5db3

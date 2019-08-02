@@ -5,7 +5,9 @@ echo "\$config['dc_gdoor']['port'] = ${GDOOR_PUB_PORT}; // gdoor 门禁端口" >
 
 # 对Gdoor代码进行再次更新
 cd $DOCKER_GDOOR_SERVER_DIR 
-git remote set-url origin git@192.168.0.26:gdoor-server.git
+git remote set-url origin git@192.168.18.26:gdoor-server.git
+git config --global user.email "support@geneegroup.com"
+git config --global user.name "support"
 git stash --include-untracked
 git pull origin develop
 git stash pop
